@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitcoin Trading Simulator & Algorithmic Trading Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Custom Dark theme styling */
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+    }
+    .panel-dark {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+    }
+    .input-dark {
+      background-color: #0d1117;
+      border: 1px solid #30363d;
+      color: #f0f6fc;
+    }
+    .input-dark:focus {
+      border-color: #58a6ff;
+      outline: none;
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #161b22;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #8b949e;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- TOP NAV BAR -->
+  <header class="panel-dark border-b px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="bg-amber-500 text-white p-2 rounded-lg flex items-center justify-center animate-pulse">
+        <i data-lucide="line-chart" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-white tracking-wide flex items-center gap-2">
+          BTC Sim <span class="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/30">Live Simulation</span>
+        </h1>
+        <p class="text-xs text-gray-400">Algorithmic Trading & Simulation Sandbox</p>
+      </div>
+    </div>
+
+    <!-- Live Simulation Stats -->
+    <div class="flex items-center gap-6 text-sm flex-wrap">
+      <div class="text-center">
+        <span class="block text-xs text-gray-400">Portfolio Value</span>
+        <span id="total-portfolio" class="text-lg font-bold text-white">$10,000.00</span>
+      </div>
+      <div class="text-center">
+        <span class="block text-xs text-gray-400">Session PNL</span>
+        <span id="pnl-percent" class="text-lg font-bold text-green-400">+0.00%</span>
+      </div>
+      <div class="text-center border-l border-gray-700 pl-4">
+        <span class="block text-xs text-gray-400">Wallet USD</span>
+        <span id="wallet-usd" class="font-semibold text-gray-200">$10,000.00</span>
+      </div>
+      <div class="text-center">
+        <span class="block text-xs text-gray-400">Wallet BTC</span>
+        <span id="wallet-btc" class="font-semibold text-amber-500">0.00000000 BTC</span>
+      </div>
+    </div>
+
+    <!-- Speed Controls / Simulation Toggles -->
+    <div class="flex items-center gap-2">
+      <button id="btn-pause-resume" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1.5">
+        <i data-lucide="pause" class="w-3.5 h-3.5"></i> <span>Pause</span>
+      </button>
+      <div class="flex items-center bg-gray-800 rounded-lg p-0.5 border border-gray-700">
+        <button id="speed-1x" class="speed-btn bg-blue-600 text-white text-xs px-2.5 py-1.5 rounded-md font-medium transition">1x</button>
+        <button id="speed-5x" class="speed-btn hover:text-white text-gray-400 text-xs px-2.5 py-1.5 rounded-md font-medium transition">5x</button>
+        <button id="speed-10x" class="speed-btn hover:text-white text-gray-400 text-xs px-2.5 py-1.5 rounded-md font-medium transition">10x</button>
+      </div>
+      <button id="btn-reset" class="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs p-2 rounded-lg border border-gray-700 transition" title="Reset Simulation">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 grid grid-cols-1 xl:grid-cols-4 p-4 gap-4 overflow-hidden">
+
+    <!-- LEFT COLUMN: TRADING TERMINAL & ALGO BOTS -->
+    <section class="xl:col-span-1 flex flex-col gap-4">
+
+      <!-- TRADING TERMINAL -->
+      <div class="panel-dark rounded-xl p-4 flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+          <h2 class="font-bold text-white text-sm tracking-wide flex items-center gap-1.5">
+            <i data-lucide="wallet" class="w-4 h-4 text-amber-500"></i> Trade Terminal
+          </h2>
+          <span class="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">Fee: 0.1%</span>
+        </div>
+
+        <!-- Order Type Selector -->
+        <div class="grid grid-cols-2 bg-gray-800 rounded-lg p-0.5 border border-gray-700">
+          <button id="tab-market" class="order-type-tab bg-blue-600 text-white text-xs py-2 rounded-md font-medium transition">Market</button>
+          <button id="tab-limit" class="order-type-tab hover:text-white text-gray-400 text-xs py-2 rounded-md font-medium transition">Limit</button>
+        </div>
+
+        <!-- Buy / Sell Action Toggle -->
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-side-buy" class="side-btn bg-green-500/20 text-green-400 border border-green-500/30 text-xs py-2 rounded-md font-bold transition">BUY BTC</button>
+          <button id="btn-side-sell" class="side-btn hover:bg-red-500/10 text-gray-400 text-xs py-2 rounded-md font-bold transition">SELL BTC</button>
+        </div>
+
+        <!-- Limit price input (only shown if limit selected) -->
+        <div id="limit-price-group" class="hidden flex flex-col gap-1">
+          <label class="text-xs text-gray-400 font-medium">Limit Price (USD)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-gray-500 text-xs">$</span>
+            <input id="input-limit-price" type="number" step="0.01" class="input-dark w-full rounded-lg pl-7 pr-3 py-1.5 text-xs text-right font-mono" placeholder="0.00">
+          </div>
+        </div>
+
+        <!-- Size Input -->
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center justify-between">
+            <label id="label-amount" class="text-xs text-gray-400 font-medium">Amount to Buy (USD)</label>
+            <span id="max-available-label" class="text-[10px] text-gray-500 cursor-pointer hover:text-blue-400">Max: $10,000</span>
+          </div>
+          <div class="relative">
+            <span id="amount-prefix" class="absolute left-3 top-2 text-gray-500 text-xs">$</span>
+            <input id="input-amount" type="number" step="any" class="input-dark w-full rounded-lg pl-7 pr-3 py-1.5 text-xs text-right font-mono" placeholder="0.00">
+          </div>
+        </div>
+
+        <!-- Quick selection percents -->
+        <div class="grid grid-cols-4 gap-1">
+          <button class="pct-btn bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] py-1.5 rounded font-medium transition" data-pct="0.25">25%</button>
+          <button class="pct-btn bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] py-1.5 rounded font-medium transition" data-pct="0.50">50%</button>
+          <button class="pct-btn bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] py-1.5 rounded font-medium transition" data-pct="0.75">75%</button>
+          <button class="pct-btn bg-gray-800 hover:bg-gray-700 text-gray-300 text-[10px] py-1.5 rounded font-medium transition" data-pct="1.00">100%</button>
+        </div>
+
+        <!-- Action Button -->
+        <button id="btn-submit-order" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-2.5 rounded-lg transition shadow-lg shadow-green-500/15">
+          Execute BUY Order
+        </button>
+      </div>
+
+      <!-- ALGORITHMIC TRADING BOTS -->
+      <div class="panel-dark rounded-xl p-4 flex flex-col gap-3 flex-1 overflow-y-auto">
+        <h2 class="font-bold text-white text-sm tracking-wide flex items-center gap-1.5 border-b border-gray-800 pb-2">
+          <i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i> Algo Trading Bots
+        </h2>
+
+        <!-- BOT 1: SMA CROSSOVER -->
+        <div class="bg-gray-800/40 p-3 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-semibold text-white">SMA Crossover Bot</h3>
+              <p class="text-[10px] text-gray-400">Golden & Death Cross (SMA 7/25)</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="bot-sma-toggle" class="sr-only peer">
+              <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-500"></div>
+            </label>
+          </div>
+          <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1">
+            <span>Last signal: <strong id="bot-sma-signal" class="text-gray-300">NONE</strong></span>
+            <span>Allocation: <strong>100%</strong></span>
+          </div>
+        </div>
+
+        <!-- BOT 2: RSI REVERSAL -->
+        <div class="bg-gray-800/40 p-3 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-semibold text-white">RSI Reversal Bot</h3>
+              <p class="text-[10px] text-gray-400">Buy Oversold (≤30), Sell Overbought (≥70)</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="bot-rsi-toggle" class="sr-only peer">
+              <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-500"></div>
+            </label>
+          </div>
+          <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1">
+            <span>Last signal: <strong id="bot-rsi-signal" class="text-gray-300">NONE</strong></span>
+            <span>Allocation: <strong>100%</strong></span>
+          </div>
+        </div>
+
+        <!-- BOT 3: GRID TRADING -->
+        <div class="bg-gray-800/40 p-3 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-semibold text-white">Grid Trading Bot</h3>
+              <p class="text-[10px] text-gray-400">Places 5-level grid inside ±2% range</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="bot-grid-toggle" class="sr-only peer">
+              <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-500"></div>
+            </label>
+          </div>
+          <div class="flex justify-between items-center text-[10px] text-gray-400 mt-1">
+            <span id="bot-grid-status" class="text-gray-300">Status: <strong>INACTIVE</strong></span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MIDDLE COLUMNS: REAL-TIME CHART, PRICE STATS & NEWS SHOCKS -->
+    <section class="xl:col-span-2 flex flex-col gap-4">
+
+      <!-- STATS BAR -->
+      <div class="grid grid-cols-4 panel-dark rounded-xl p-3 gap-2 text-center">
+        <div>
+          <span class="text-[10px] text-gray-400 block uppercase font-medium">BTC Price</span>
+          <span id="price-main" class="text-base font-extrabold text-white">$50,000.00</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-gray-400 block uppercase font-medium">High</span>
+          <span id="price-high" class="text-base font-extrabold text-gray-300">$50,150.00</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-gray-400 block uppercase font-medium">Low</span>
+          <span id="price-low" class="text-base font-extrabold text-gray-300">$49,850.00</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-gray-400 block uppercase font-medium">Market Sentiment</span>
+          <span id="market-sentiment" class="text-sm font-extrabold text-gray-400 tracking-wider">NEUTRAL</span>
+        </div>
+      </div>
+
+      <!-- MAIN CHART PANEL -->
+      <div class="panel-dark rounded-xl p-4 flex-1 flex flex-col gap-3 relative min-h-[300px]">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xs font-bold text-white uppercase tracking-wider">BTC / USD Price Chart</h2>
+            <div class="flex gap-1.5">
+              <span class="text-[9px] bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">RSI: <span id="rsi-val">50.0</span></span>
+              <span class="text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded">SMA-7: <span id="sma7-val">-</span></span>
+              <span class="text-[9px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded">SMA-25: <span id="sma25-val">-</span></span>
+            </div>
+          </div>
+          <span class="text-[10px] text-gray-400 font-mono">Chart updates on candle close</span>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="flex-1 relative">
+          <canvas id="trading-chart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- NEWS EVENTS & SENTIMENT SENTINEL -->
+      <div class="panel-dark rounded-xl p-4 flex flex-col gap-3 h-52">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+          <h2 class="font-bold text-white text-sm tracking-wide flex items-center gap-1.5">
+            <i data-lucide="newspaper" class="w-4 h-4 text-sky-400"></i> Market Intelligence News Feed
+          </h2>
+          <button id="btn-trigger-news" class="bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold px-3 py-1 rounded transition flex items-center gap-1">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Trigger Shock Event
+          </button>
+        </div>
+
+        <div id="news-feed" class="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
+          <!-- News items will render here dynamically -->
+          <div class="text-xs text-gray-500 text-center py-4">No live market events currently triggered. Click 'Trigger Shock Event' to inject volatility.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: ACTIVE ORDERS & REAL-TIME TRANSACTION LOGS -->
+    <section class="xl:col-span-1 flex flex-col gap-4">
+
+      <!-- ACTIVE LIMIT ORDERS -->
+      <div class="panel-dark rounded-xl p-4 flex flex-col gap-2 h-1/2 overflow-hidden">
+        <h2 class="font-bold text-white text-sm tracking-wide flex items-center gap-1.5 border-b border-gray-800 pb-2">
+          <i data-lucide="file-text" class="w-4 h-4 text-yellow-400"></i> Active Limit Orders (<span id="limit-orders-count">0</span>)
+        </h2>
+        <div class="flex-1 overflow-y-auto">
+          <table class="w-full text-[11px] text-left">
+            <thead>
+              <tr class="text-gray-500 border-b border-gray-800/60 pb-1 font-medium">
+                <th class="py-1">Type</th>
+                <th class="py-1 text-right">Price</th>
+                <th class="py-1 text-right">Amount</th>
+                <th class="py-1 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="limit-orders-list">
+              <!-- Render dynamic limit orders -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TRANSACTION HISTORY -->
+      <div class="panel-dark rounded-xl p-4 flex flex-col gap-2 h-1/2 overflow-hidden">
+        <h2 class="font-bold text-white text-sm tracking-wide flex items-center gap-1.5 border-b border-gray-800 pb-2">
+          <i data-lucide="history" class="w-4 h-4 text-green-400"></i> Executed Transactions
+        </h2>
+        <div class="flex-1 overflow-y-auto">
+          <div id="tx-history-list" class="flex flex-col gap-2 text-[11px]">
+            <!-- Dynamic tx history items -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="panel-dark border-t px-6 py-3 text-center text-xs text-gray-500 flex justify-between items-center gap-4">
+    <p>Bitcoin Simulation Engine &copy; 2025. Created by Jules.</p>
+    <div class="flex gap-4">
+      <span>Market Status: <strong class="text-green-400">OPEN</strong></span>
+      <span>Engine Speed: <strong id="sim-speed-text" class="text-blue-400">1x (1 tick/sec)</strong></span>
+    </div>
+  </footer>
+
+  <!-- Include Simulation Core & App Controller Script -->
+  <script src="/simulation-core.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
