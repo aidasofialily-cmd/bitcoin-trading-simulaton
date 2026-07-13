@@ -61,6 +61,8 @@ const limitOrdersList = document.getElementById('limit-orders-list');
 const limitOrdersCount = document.getElementById('limit-orders-count');
 const txHistoryList = document.getElementById('tx-history-list');
 
+const connectionErrorBanner = document.getElementById('connection-error-banner');
+
 // Current Form State
 let currentOrderType = 'MARKET'; // MARKET or LIMIT
 let currentSide = 'BUY'; // BUY or SELL
@@ -593,6 +595,59 @@ btnReset.addEventListener('click', () => {
     initSimulation();
   }
 });
+
+// Connection Monitoring
+let isCheckingConnection = false;
+
+async function checkConnectionStatus() {
+  if (isCheckingConnection) return;
+  isCheckingConnection = true;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+  try {
+    const response = await fetch('/api/status', {
+      method: 'GET',
+      headers: { 'Cache-Control': 'no-cache' },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      hideConnectionError();
+    } else {
+      showConnectionError();
+    }
+  } catch (error) {
+    showConnectionError();
+  } finally {
+    isCheckingConnection = false;
+  }
+}
+
+function showConnectionError() {
+  if (connectionErrorBanner.classList.contains('hidden')) {
+    connectionErrorBanner.classList.remove('hidden');
+    lucide.createIcons();
+  }
+}
+
+function hideConnectionError() {
+  if (!connectionErrorBanner.classList.contains('hidden')) {
+    connectionErrorBanner.classList.add('hidden');
+  }
+}
+
+window.checkConnectionNow = function() {
+  checkConnectionStatus();
+};
+
+// Polling for connection status every 5 seconds
+setInterval(checkConnectionStatus, 5000);
+// Initial check
+checkConnectionStatus();
 
 // Boot application!
 window.onload = () => {
