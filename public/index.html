@@ -48,6 +48,20 @@
 </head>
 <body class="font-sans antialiased min-h-screen flex flex-col">
 
+  <!-- Connection Error Banner -->
+  <div id="connection-error-banner" class="hidden fixed top-0 left-0 w-full bg-red-600 text-white py-2 px-4 z-[100] flex justify-between items-center shadow-lg">
+    <div class="flex items-center gap-2">
+      <i data-lucide="wifi-off" class="w-5 h-5"></i>
+      <span class="font-bold text-sm">Connection Lost:</span>
+      <span class="text-sm">Unable to connect to the simulation server. Some features may be limited.</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <button onclick="checkConnectionNow()" class="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1 rounded transition font-medium">
+        Retry Now
+      </button>
+    </div>
+  </div>
+
   <!-- TOP NAV BAR -->
   <header class="panel-dark border-b px-6 py-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-3">
