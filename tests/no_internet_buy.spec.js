@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('should show "No Internet Connection to buy" message when offline and buying', async ({ page }) => {
+test('should show "No internet connection to buy" message when offline and buying', async ({ page }) => {
   // Go to the app
   await page.goto('http://localhost:3000');
 
