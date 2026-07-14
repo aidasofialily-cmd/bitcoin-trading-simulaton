@@ -62,6 +62,11 @@ const limitOrdersCount = document.getElementById('limit-orders-count');
 const txHistoryList = document.getElementById('tx-history-list');
 
 const connectionErrorBanner = document.getElementById('connection-error-banner');
+const backOnlineBanner = document.getElementById('back-online-banner');
+
+// Connection logic state
+let isOffline = false;
+let backOnlineTimeoutId = null;
 
 // Current Form State
 let currentOrderType = 'MARKET'; // MARKET or LIMIT
@@ -628,15 +633,54 @@ async function checkConnectionStatus() {
 }
 
 function showConnectionError() {
-  if (connectionErrorBanner.classList.contains('hidden')) {
-    connectionErrorBanner.classList.remove('hidden');
-    lucide.createIcons();
+  isOffline = true;
+  // If we lose connection, make sure the back online banner is hidden
+  hideBackOnlineBanner();
+
+  if (connectionErrorBanner) {
+    if (connectionErrorBanner.classList.contains('hidden')) {
+      connectionErrorBanner.classList.remove('hidden');
+      lucide.createIcons();
+    }
   }
 }
 
 function hideConnectionError() {
-  if (!connectionErrorBanner.classList.contains('hidden')) {
-    connectionErrorBanner.classList.add('hidden');
+  if (connectionErrorBanner) {
+    if (!connectionErrorBanner.classList.contains('hidden')) {
+      connectionErrorBanner.classList.add('hidden');
+    }
+  }
+
+  // If we were offline and now we're back online, show the back online banner!
+  if (isOffline) {
+    isOffline = false;
+    showBackOnlineBanner();
+  }
+}
+
+function showBackOnlineBanner() {
+  if (backOnlineBanner) {
+    if (backOnlineTimeoutId) {
+      clearTimeout(backOnlineTimeoutId);
+    }
+    backOnlineBanner.classList.remove('hidden');
+    lucide.createIcons();
+
+    // Auto hide after 3 seconds
+    backOnlineTimeoutId = setTimeout(() => {
+      hideBackOnlineBanner();
+    }, 3000);
+  }
+}
+
+function hideBackOnlineBanner() {
+  if (backOnlineBanner && !backOnlineBanner.classList.contains('hidden')) {
+    backOnlineBanner.classList.add('hidden');
+  }
+  if (backOnlineTimeoutId) {
+    clearTimeout(backOnlineTimeoutId);
+    backOnlineTimeoutId = null;
   }
 }
 

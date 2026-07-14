@@ -1,0 +1,6 @@
+node_modules/
+server_run.log
+server.log
+/tmp/
+.pytest_cache/
+__pycache__/
