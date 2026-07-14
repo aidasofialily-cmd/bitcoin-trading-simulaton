@@ -52,4 +52,4 @@ npm test # or your specific playwright command if configured
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the GPL License.
