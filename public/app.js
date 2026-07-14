@@ -34,6 +34,7 @@ const inputLimitPrice = document.getElementById('input-limit-price');
 const btnSubmitOrder = document.getElementById('btn-submit-order');
 const btcStockLabel = document.getElementById('btc-stock-label');
 const outOfStockMessage = document.getElementById('out-of-stock-message');
+const noInternetBuyMessage = document.getElementById('no-internet-buy-message');
 
 // Stats bar
 const priceMainEl = document.getElementById('price-main');
@@ -268,11 +269,17 @@ function updateUI() {
   btcStockLabel.textContent = `Stock: ${sim.btcStock.toFixed(4)} BTC`;
   if (sim.btcStock <= 0 && currentSide === 'BUY') {
     outOfStockMessage.classList.remove('hidden');
+    noInternetBuyMessage.classList.add('hidden');
     btnSubmitOrder.disabled = true;
     lucide.createIcons();
   } else {
     outOfStockMessage.classList.add('hidden');
     btnSubmitOrder.disabled = false;
+
+    // Also hide no internet message if we switch sides or stock becomes available
+    if (currentSide === 'SELL' || !isOffline) {
+      noInternetBuyMessage.classList.add('hidden');
+    }
   }
 
   // Form limits & dynamic hints
@@ -512,6 +519,14 @@ btnSubmitOrder.addEventListener('click', () => {
     return;
   }
 
+  // Check for internet connection if buying
+  if (isOffline && currentSide === 'BUY') {
+    noInternetBuyMessage.classList.remove('hidden');
+    outOfStockMessage.classList.add('hidden');
+    lucide.createIcons();
+    return;
+  }
+
   if (currentOrderType === 'MARKET') {
     if (currentSide === 'BUY') {
       const res = sim.buyMarket(amount);
@@ -674,6 +689,10 @@ function hideConnectionError() {
     if (!connectionErrorBanner.classList.contains('hidden')) {
       connectionErrorBanner.classList.add('hidden');
     }
+  }
+
+  if (noInternetBuyMessage) {
+    noInternetBuyMessage.classList.add('hidden');
   }
 
   // If we were offline and now we're back online, show the back online banner!
