@@ -9,6 +9,7 @@ class BitcoinTradingSimulation {
     this.initialUsd = options.initialUsd || 10000;
     this.usdBalance = this.initialUsd;
     this.btcBalance = options.initialBtc || 0;
+    this.btcStock = options.btcStock !== undefined ? options.btcStock : 10.0;
     this.transactionFeePercent = options.transactionFeePercent !== undefined ? options.transactionFeePercent : 0.001; // 0.1%
 
     this.currentPrice = options.startPrice || 50000;
@@ -256,7 +257,9 @@ class BitcoinTradingSimulation {
 
   // Trading Mechanics: Market Orders
   buyMarket(usdAmount, isBot = false, botName = "") {
+    if (this.btcStock <= 0) return { success: false, error: "Out of Stock: No BTC available to buy." };
     if (usdAmount <= 0) return { success: false, error: "Invalid amount." };
+
     if (usdAmount > this.usdBalance) {
       usdAmount = this.usdBalance; // Auto-adjust to maximum available
     }
@@ -265,12 +268,21 @@ class BitcoinTradingSimulation {
       return { success: false, error: "Insufficient USD balance." };
     }
 
-    const fee = usdAmount * this.transactionFeePercent;
-    const usdToTrade = usdAmount - fee;
-    const btcGained = usdToTrade / this.currentPrice;
+    let fee = usdAmount * this.transactionFeePercent;
+    let usdToTrade = usdAmount - fee;
+    let btcGained = usdToTrade / this.currentPrice;
+
+    // Cap by available stock
+    if (btcGained > this.btcStock) {
+      btcGained = this.btcStock;
+      usdToTrade = btcGained * this.currentPrice;
+      usdAmount = usdToTrade / (1 - this.transactionFeePercent);
+      fee = usdAmount * this.transactionFeePercent;
+    }
 
     this.usdBalance -= usdAmount;
     this.btcBalance += btcGained;
+    this.btcStock -= btcGained;
 
     const tx = {
       id: "TX-" + Math.floor(Math.random() * 1000000),
@@ -305,6 +317,7 @@ class BitcoinTradingSimulation {
 
     this.btcBalance -= btcAmount;
     this.usdBalance += usdGained;
+    this.btcStock += btcAmount;
 
     const tx = {
       id: "TX-" + Math.floor(Math.random() * 1000000),
@@ -383,15 +396,31 @@ class BitcoinTradingSimulation {
       let triggered = false;
 
       if (order.type === "BUY" && this.currentPrice <= order.targetPrice) {
+        if (this.btcStock <= 0) return true; // Keep order active if out of stock
+
         triggered = true;
         // Execute buy limit order
         // Note: USD was already locked (subtracted) at order placement
-        const fee = order.totalUSD * this.transactionFeePercent;
-        const netUSD = order.totalUSD - fee;
+        let currentOrderTotalUSD = order.totalUSD;
+        let fee = currentOrderTotalUSD * this.transactionFeePercent;
+        let netUSD = currentOrderTotalUSD - fee;
         // The actual purchase price is the current price (often slightly lower/better than target)
-        const btcGained = netUSD / this.currentPrice;
+        let btcGained = netUSD / this.currentPrice;
+
+        // Cap by available stock
+        if (btcGained > this.btcStock) {
+          btcGained = this.btcStock;
+          netUSD = btcGained * this.currentPrice;
+          currentOrderTotalUSD = netUSD / (1 - this.transactionFeePercent);
+          fee = currentOrderTotalUSD * this.transactionFeePercent;
+
+          // Refund unused USD
+          const refund = order.totalUSD - currentOrderTotalUSD;
+          this.usdBalance += refund;
+        }
 
         this.btcBalance += btcGained;
+        this.btcStock -= btcGained;
 
         const tx = {
           id: "TX-" + Math.floor(Math.random() * 1000000),
@@ -399,7 +428,7 @@ class BitcoinTradingSimulation {
           orderType: "LIMIT",
           amount: btcGained,
           price: this.currentPrice,
-          totalUSD: order.totalUSD,
+          totalUSD: currentOrderTotalUSD,
           fee,
           timestamp: Date.now(),
           isBot: false
@@ -418,6 +447,7 @@ class BitcoinTradingSimulation {
         const netUSD = rawUSD - fee;
 
         this.usdBalance += netUSD;
+        this.btcStock += order.amount;
 
         const tx = {
           id: "TX-" + Math.floor(Math.random() * 1000000),

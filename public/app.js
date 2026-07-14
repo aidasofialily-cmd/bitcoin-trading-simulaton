@@ -32,6 +32,8 @@ const amountPrefix = document.getElementById('amount-prefix');
 const inputAmount = document.getElementById('input-amount');
 const inputLimitPrice = document.getElementById('input-limit-price');
 const btnSubmitOrder = document.getElementById('btn-submit-order');
+const btcStockLabel = document.getElementById('btc-stock-label');
+const outOfStockMessage = document.getElementById('out-of-stock-message');
 
 // Stats bar
 const priceMainEl = document.getElementById('price-main');
@@ -260,6 +262,17 @@ function updateUI() {
 
   walletUsdEl.textContent = formatUSD(sim.usdBalance);
   walletBtcEl.textContent = `${sim.btcBalance.toFixed(8)} BTC`;
+
+  // Stock tracking
+  btcStockLabel.textContent = `Stock: ${sim.btcStock.toFixed(4)} BTC`;
+  if (sim.btcStock <= 0 && currentSide === 'BUY') {
+    outOfStockMessage.classList.remove('hidden');
+    btnSubmitOrder.disabled = true;
+    lucide.createIcons();
+  } else {
+    outOfStockMessage.classList.add('hidden');
+    btnSubmitOrder.disabled = false;
+  }
 
   // Form limits & dynamic hints
   maxAvailableLabel.textContent = currentSide === 'BUY'
