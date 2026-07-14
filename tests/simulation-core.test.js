@@ -187,3 +187,37 @@ test('BitcoinTradingSimulation - News Triggering', (t) => {
   assert.strictEqual(sim.sentimentTicksLeft, 5);
   assert.strictEqual(sim.newsFeed[0].headline, "Massive positive news!");
 });
+
+test('BitcoinTradingSimulation - Out of Stock Logic', (t) => {
+  const sim = new BitcoinTradingSimulation({
+    initialUsd: 1000000,
+    startPrice: 50000,
+    btcStock: 0.5, // low stock
+    seedLength: 10,
+    ticksPerCandle: 5
+  });
+
+  // Try to buy more than stock
+  // 50000 USD should buy 1 BTC at 50000 USD (ignoring fee for a second)
+  // But stock is only 0.5
+  const result = sim.buyMarket(60000);
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(sim.btcBalance, 0.5);
+  assert.strictEqual(sim.btcStock, 0);
+
+  // Try to buy when out of stock
+  const result2 = sim.buyMarket(100);
+  assert.strictEqual(result2.success, false);
+  assert.strictEqual(result2.error, "Out of Stock: No BTC available to buy.");
+
+  // Sell to replenish stock
+  sim.sellMarket(0.2);
+  assert.strictEqual(sim.btcStock, 0.2);
+  assert.strictEqual(sim.btcBalance, 0.3);
+
+  // Buy again
+  const result3 = sim.buyMarket(100000);
+  assert.strictEqual(result3.success, true);
+  assert.strictEqual(sim.btcStock, 0);
+  assert.strictEqual(sim.btcBalance, 0.5);
+});
