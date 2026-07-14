@@ -65,6 +65,7 @@ const txHistoryList = document.getElementById('tx-history-list');
 
 const connectionErrorBanner = document.getElementById('connection-error-banner');
 const backOnlineBanner = document.getElementById('back-online-banner');
+const loadingBanner = document.getElementById('loading-banner');
 
 // Connection logic state
 let isOffline = false;
@@ -621,6 +622,12 @@ async function checkConnectionStatus() {
   if (isCheckingConnection) return;
   isCheckingConnection = true;
 
+  // Show loading banner while checking
+  if (loadingBanner) {
+    loadingBanner.classList.remove('hidden');
+    lucide.createIcons();
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
@@ -642,6 +649,10 @@ async function checkConnectionStatus() {
     showConnectionError();
   } finally {
     isCheckingConnection = false;
+    // Hide loading banner when check is done
+    if (loadingBanner) {
+      loadingBanner.classList.add('hidden');
+    }
   }
 }
 

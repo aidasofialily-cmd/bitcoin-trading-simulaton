@@ -11,6 +11,7 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "playwright": "^1.42.1"
   },
   "keywords": [
