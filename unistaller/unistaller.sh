@@ -17,23 +17,41 @@ fi
 # 2. Check global npm write permissions before unlinking
 NPM_PREFIX="$(npm config get prefix)"
 NPM_GLOBAL_DIR="$NPM_PREFIX/lib/node_modules"
+USE_SUDO=false
 
 if [ ! -w "$NPM_PREFIX" ] && [ ! -w "$NPM_GLOBAL_DIR" 2>/dev/null ] && [ "$(id -u)" -ne 0 ]; then
-    echo ""
-    echo "❌ Error: Write permission denied for global npm folder ($NPM_PREFIX)."
-    echo "   Removing global links requires root privileges or a user-owned npm prefix."
-    echo ""
-    echo "   Please re-run with elevated privileges:"
-    echo "     sudo ./uninstall.sh"
-    exit 1
+    echo "⚠️ Warning: Write access denied for global npm directory ($NPM_PREFIX)."
+    echo "🔐 Elevated privileges (sudo) will be required to run 'npm unlink'."
+    USE_SUDO=true
+else
+    echo "✅ Global npm path:  $NPM_PREFIX (Writable)"
 fi
 
-# 3. Unlink binary globally using npm
+# 3. Unlink binary globally using npm (prompting before using sudo)
 echo "🔗 Unlinking global npm package..."
-if npm unlink 2>/dev/null; then
-    echo "✅ Global binary link removed."
+if [ "$USE_SUDO" = true ]; then
+    read -p "❓ Sudo privilege is required to unlink binary from $NPM_PREFIX. Proceed? [Y/n]: " CONFIRM_SUDO
+    CONFIRM_SUDO=${CONFIRM_SUDO:-Y}
+
+    case "$CONFIRM_SUDO" in
+        [yY][eE][sS]|[yY])
+            echo "🔑 Invoking sudo for 'npm unlink'..."
+            if sudo npm unlink 2>/dev/null; then
+                echo "✅ Global binary link removed."
+            else
+                echo "⚠️ Warning: 'npm unlink' did not find an active link, continuing cleanup..."
+            fi
+            ;;
+        *)
+            echo "⚠️ Global unlinking skipped by user. Continuing local cleanup..."
+            ;;
+    esac
 else
-    echo "⚠️ Warning: 'npm unlink' did not find an active link, continuing cleanup..."
+    if npm unlink 2>/dev/null; then
+        echo "✅ Global binary link removed."
+    else
+        echo "⚠️ Warning: 'npm unlink' did not find an active link, continuing cleanup..."
+    fi
 fi
 
 # 4. Clean local dependencies and build artifacts
