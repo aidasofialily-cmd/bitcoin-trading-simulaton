@@ -8,23 +8,52 @@ echo "  Installing Bitcoin Trading Simulation CLI       "
 echo "  Repository: aidasofialily-cmd/bitcoin-trading-simulaton"
 echo "=================================================="
 
-# Minimum required macOS version
 MIN_MACOS_VERSION="11.0"
+OS_TYPE="$(uname -s)"
 
-# 1. macOS Version Check
-if [ "$(uname -s)" = "Darwin" ]; then
-    CURRENT_MACOS_VERSION=$(sw_vers -productVersion)
+# 1. OS and Linux Distribution Check
+case "$OS_TYPE" in
+    Linux*)
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            DISTRO_NAME="${NAME:-Linux}"
+            DISTRO_VERSION="${VERSION_ID:-Unknown}"
+            echo "✅ OS detected:      Linux ($PRETTY_NAME)"
+        else
+            DISTRO_NAME="Generic Linux"
+            echo "⚠️ OS detected:      Linux (Unable to parse /etc/os-release)"
+        fi
 
-    # Compare versions using sort -V
-    LOWER_VERSION=$(printf '%s\n%s\n' "$MIN_MACOS_VERSION" "$CURRENT_MACOS_VERSION" | sort -V | head -n1)
+        # Verify supported Linux distributions
+        case "${ID:-unknown}" in
+            ubuntu|debian|fedora|arch|centos|rhel|alpine|pop|manjaro|mint)
+                echo "✅ Distribution:     Supported ($DISTRO_NAME)"
+                ;;
+            *)
+                echo "⚠️ Warning: Running on an unverified Linux distribution (${DISTRO_NAME}). Proceeding with installation..."
+                ;;
+        esac
+        ;;
 
-    if [ "$LOWER_VERSION" != "$MIN_MACOS_VERSION" ] && [ "$CURRENT_MACOS_VERSION" != "$MIN_MACOS_VERSION" ]; then
-        echo "❌ Error: Your macOS version is too old ($CURRENT_MACOS_VERSION). Minimum required version is $MIN_MACOS_VERSION."
+    Darwin*)
+        CURRENT_MACOS_VERSION=$(sw_vers -productVersion)
+
+        # Compare versions using sort -V
+        LOWER_VERSION=$(printf '%s\n%s\n' "$MIN_MACOS_VERSION" "$CURRENT_MACOS_VERSION" | sort -V | head -n1)
+
+        if [ "$LOWER_VERSION" != "$MIN_MACOS_VERSION" ] && [ "$CURRENT_MACOS_VERSION" != "$MIN_MACOS_VERSION" ]; then
+            echo "❌ Error: Your macOS version is too old ($CURRENT_MACOS_VERSION). Minimum required version is $MIN_MACOS_VERSION."
+            exit 1
+        fi
+
+        echo "✅ OS detected:      macOS ($CURRENT_MACOS_VERSION)"
+        ;;
+
+    *)
+        echo "❌ Error: Unsupported Operating System ($OS_TYPE). This installer supports Linux and macOS."
         exit 1
-    fi
-
-    echo "✅ macOS version:   $CURRENT_MACOS_VERSION"
-fi
+        ;;
+esac
 
 # 2. Check for Node.js
 if ! command -v node &> /dev/null; then
