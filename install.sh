@@ -17,14 +17,12 @@ case "$OS_TYPE" in
         if [ -f /etc/os-release ]; then
             . /etc/os-release
             DISTRO_NAME="${NAME:-Linux}"
-            DISTRO_VERSION="${VERSION_ID:-Unknown}"
             echo "✅ OS detected:      Linux ($PRETTY_NAME)"
         else
             DISTRO_NAME="Generic Linux"
             echo "⚠️ OS detected:      Linux (Unable to parse /etc/os-release)"
         fi
 
-        # Verify supported Linux distributions
         case "${ID:-unknown}" in
             ubuntu|debian|fedora|arch|centos|rhel|alpine|pop|manjaro|mint)
                 echo "✅ Distribution:     Supported ($DISTRO_NAME)"
@@ -38,7 +36,6 @@ case "$OS_TYPE" in
     Darwin*)
         CURRENT_MACOS_VERSION=$(sw_vers -productVersion)
 
-        # Compare versions using sort -V
         LOWER_VERSION=$(printf '%s\n%s\n' "$MIN_MACOS_VERSION" "$CURRENT_MACOS_VERSION" | sort -V | head -n1)
 
         if [ "$LOWER_VERSION" != "$MIN_MACOS_VERSION" ] && [ "$CURRENT_MACOS_VERSION" != "$MIN_MACOS_VERSION" ]; then
@@ -69,19 +66,39 @@ fi
 
 echo "✅ Node.js version: $(node -v)"
 echo "✅ npm version:     $(npm -v)"
+
+# 4. Check global npm permissions before linking
+NPM_PREFIX="$(npm config get prefix)"
+NPM_GLOBAL_DIR="$NPM_PREFIX/lib/node_modules"
+
+if [ ! -w "$NPM_PREFIX" ] && [ ! -w "$NPM_GLOBAL_DIR" 2>/dev/null ] && [ "$(id -u)" -ne 0 ]; then
+    echo ""
+    echo "❌ Error: Write permission denied for global npm folder ($NPM_PREFIX)."
+    echo "   Running 'npm link' requires root privileges or a user-owned npm prefix."
+    echo ""
+    echo "   To resolve this, choose one of the following:"
+    echo "   1. Re-run with sudo: sudo ./install.sh"
+    echo "   2. Configure a user-owned global directory:"
+    echo "      mkdir -p ~/.npm-global"
+    echo "      npm config set prefix '~/.npm-global'"
+    echo "      export PATH=~/.npm-global/bin:\$PATH"
+    exit 1
+fi
+
+echo "✅ Global npm path:  $NPM_PREFIX (Writable)"
 echo ""
 
-# 4. Clean install npm dependencies
+# 5. Clean install npm dependencies
 echo "📦 Installing dependencies via npm..."
 npm install
 
-# 5. Build project (if build script exists in package.json)
+# 6. Build project (if build script exists in package.json)
 if npm run | grep -q "build"; then
     echo "🔨 Building project artifacts..."
     npm run build
 fi
 
-# 6. Link binary globally using npm
+# 7. Link binary globally using npm
 echo "🔗 Linking executable binary globally via npm..."
 npm link
 
