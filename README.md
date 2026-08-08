@@ -27,7 +27,7 @@ An interactive Bitcoin trading simulation and algorithmic trading dashboard. Thi
 ## Getting Started
 
 ### Prerequisites
-
+- macOS (v11.0+) or Linux (Ubuntu, Debian, Fedora, Arch, etc.)
 - [Node.js](https://nodejs.org/) (v14 or higher recommended)
 - npm (comes with Node.js)
 
