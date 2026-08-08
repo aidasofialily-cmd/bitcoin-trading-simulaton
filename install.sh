@@ -3,6 +3,42 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+ASSUME_YES=false
+
+# Function called automatically if any step in the installation fails
+on_failure() {
+    EXIT_CODE=$?
+    echo ""
+    echo "=================================================="
+    echo "❌ Installation encountered an error (exit code: $EXIT_CODE)."
+    echo "   Launching diagnostic troubleshooter..."
+    echo "=================================================="
+    echo ""
+
+    if [ -f "./install-troubleshooter.sh" ]; then
+        # Ensure executable permissions on troubleshooter
+        chmod +x ./install-troubleshooter.sh 2>/dev/null || true
+        ./install-troubleshooter.sh
+    else
+        echo "⚠️ Could not locate install-troubleshooter.sh in current directory."
+    fi
+
+    exit "$EXIT_CODE"
+}
+
+# Trap ERR signal to trigger the failure handler
+trap 'on_failure' ERR
+
+# Parse command line flags
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes)
+            ASSUME_YES=true
+            shift
+            ;;
+    esac
+done
+
 echo "=================================================="
 echo "  Installing Bitcoin Trading Simulation CLI       "
 echo "  Repository: aidasofialily-cmd/bitcoin-trading-simulaton"
@@ -40,7 +76,7 @@ case "$OS_TYPE" in
 
         if [ "$LOWER_VERSION" != "$MIN_MACOS_VERSION" ] && [ "$CURRENT_MACOS_VERSION" != "$MIN_MACOS_VERSION" ]; then
             echo "❌ Error: Your macOS version is too old ($CURRENT_MACOS_VERSION). Minimum required version is $MIN_MACOS_VERSION."
-            exit 1
+            false # Trigger failure trap
         fi
 
         echo "✅ OS detected:      macOS ($CURRENT_MACOS_VERSION)"
@@ -48,20 +84,20 @@ case "$OS_TYPE" in
 
     *)
         echo "❌ Error: Unsupported Operating System ($OS_TYPE). This installer supports Linux and macOS."
-        exit 1
+        false # Trigger failure trap
         ;;
 esac
 
 # 2. Check for Node.js
 if ! command -v node &> /dev/null; then
     echo "❌ Error: Node.js is not installed. Please install Node.js (v16+) before proceeding."
-    exit 1
+    false # Trigger failure trap
 fi
 
 # 3. Check for npm
 if ! command -v npm &> /dev/null; then
     echo "❌ Error: npm is not installed. Please install npm to continue."
-    exit 1
+    false # Trigger failure trap
 fi
 
 echo "✅ Node.js version: $(node -v)"
@@ -91,23 +127,28 @@ if npm run | grep -q "build"; then
     npm run build
 fi
 
-# 7. Link binary globally using npm (prompting before using sudo)
+# 7. Link binary globally using npm
 echo "🔗 Linking executable binary globally via npm..."
 if [ "$USE_SUDO" = true ]; then
-    read -p "❓ Sudo privilege is required to link binary to $NPM_PREFIX. Proceed? [Y/n]: " CONFIRM_SUDO
-    CONFIRM_SUDO=${CONFIRM_SUDO:-Y}
+    if [ "$ASSUME_YES" = true ]; then
+        echo "🔑 Auto-confirming sudo execution (-y / --yes flag passed)..."
+        sudo npm link
+    else
+        read -p "❓ Sudo privilege is required to link binary to $NPM_PREFIX. Proceed? [Y/n]: " CONFIRM_SUDO
+        CONFIRM_SUDO=${CONFIRM_SUDO:-Y}
 
-    case "$CONFIRM_SUDO" in
-        [yY][eE][sS]|[yY])
-            echo "🔑 Invoking sudo for 'npm link'..."
-            sudo npm link
-            ;;
-        *)
-            echo "❌ Global linking canceled by user. Local installation completed."
-            echo "   You can manually run 'sudo npm link' whenever you are ready."
-            exit 0
-            ;;
-    esac
+        case "$CONFIRM_SUDO" in
+            [yY][eE][sS]|[yY])
+                echo "🔑 Invoking sudo for 'npm link'..."
+                sudo npm link
+                ;;
+            *)
+                echo "❌ Global linking canceled by user. Local installation completed."
+                echo "   You can manually run 'sudo npm link' whenever you are ready."
+                exit 0
+                ;;
+        esac
+    fi
 else
     npm link
 fi
