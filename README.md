@@ -35,8 +35,13 @@ An interactive Bitcoin trading simulation and algorithmic trading dashboard. Thi
 
 1. **Clone the repository**:
  ```bash
+# Clone the repository
 git clone https://github.com/aidasofialily-cmd/bitcoin-trading-simulaton.git
 cd bitcoin-trading-simulation
+
+# Make installer executable and run
+chmod +x install.sh
+./install.sh
    ```
 
 2. **Install Dependencies**:
