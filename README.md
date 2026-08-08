@@ -35,7 +35,7 @@ An interactive Bitcoin trading simulation and algorithmic trading dashboard. Thi
 
 1. **Clone the repository**:
  ```bash
-   git clone https://github.com/aidasofialily-cmd/bitcoin-trading-simulaton.git
+git clone https://github.com/aidasofialily-cmd/bitcoin-trading-simulaton.git
 cd bitcoin-trading-simulation
    ```
 
