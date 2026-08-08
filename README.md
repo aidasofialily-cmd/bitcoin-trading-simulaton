@@ -33,12 +33,18 @@ An interactive Bitcoin trading simulation and algorithmic trading dashboard. Thi
 
 ### Installation
 
-1. **Install Dependencies**:
+1. **Clone the repository**:
+ ```bash
+   git clone https://github.com/aidasofialily-cmd/bitcoin-trading-simulaton.git
+cd bitcoin-trading-simulation
+   ```
+
+3. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-2. **Setup Playwright** (optional, for frontend tests):
+4. **Setup Playwright** (optional, for frontend tests):
    ```bash
    npx playwright install chromium
    ```
