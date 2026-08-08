@@ -117,6 +117,11 @@ PORT=3001 npm start
 **Issue**: Running `npx playwright test` fails.
 **Solution**: Ensure you have installed the necessary browser binaries using `npx playwright install chromium`. Also, ensure the server is NOT running on the same port if the test expects to launch its own instance, or check the test configuration.
 
+## Unistalling
+# Make uninstaller executable and run
+chmod +x uninstall.sh
+./uninstall.sh
+
 ## License
 
 This project is licensed under the MIT License.
