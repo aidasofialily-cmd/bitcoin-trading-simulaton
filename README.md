@@ -39,12 +39,12 @@ git clone https://github.com/aidasofialily-cmd/bitcoin-trading-simulaton.git
 cd bitcoin-trading-simulation
    ```
 
-3. **Install Dependencies**:
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-4. **Setup Playwright** (optional, for frontend tests):
+3. **Setup Playwright** (optional, for frontend tests):
    ```bash
    npx playwright install chromium
    ```
