@@ -67,25 +67,18 @@ fi
 echo "✅ Node.js version: $(node -v)"
 echo "✅ npm version:     $(npm -v)"
 
-# 4. Check global npm permissions before linking
+# 4. Determine permissions for global npm linking
 NPM_PREFIX="$(npm config get prefix)"
 NPM_GLOBAL_DIR="$NPM_PREFIX/lib/node_modules"
+USE_SUDO=false
 
 if [ ! -w "$NPM_PREFIX" ] && [ ! -w "$NPM_GLOBAL_DIR" 2>/dev/null ] && [ "$(id -u)" -ne 0 ]; then
-    echo ""
-    echo "❌ Error: Write permission denied for global npm folder ($NPM_PREFIX)."
-    echo "   Running 'npm link' requires root privileges or a user-owned npm prefix."
-    echo ""
-    echo "   To resolve this, choose one of the following:"
-    echo "   1. Re-run with sudo: sudo ./install.sh"
-    echo "   2. Configure a user-owned global directory:"
-    echo "      mkdir -p ~/.npm-global"
-    echo "      npm config set prefix '~/.npm-global'"
-    echo "      export PATH=~/.npm-global/bin:\$PATH"
-    exit 1
+    echo "⚠️ Warning: Write access denied for global npm directory ($NPM_PREFIX)."
+    echo "🔐 Elevated privileges (sudo) will be required to run 'npm link'."
+    USE_SUDO=true
+else
+    echo "✅ Global npm path:  $NPM_PREFIX (Writable)"
 fi
-
-echo "✅ Global npm path:  $NPM_PREFIX (Writable)"
 echo ""
 
 # 5. Clean install npm dependencies
@@ -98,9 +91,26 @@ if npm run | grep -q "build"; then
     npm run build
 fi
 
-# 7. Link binary globally using npm
+# 7. Link binary globally using npm (prompting before using sudo)
 echo "🔗 Linking executable binary globally via npm..."
-npm link
+if [ "$USE_SUDO" = true ]; then
+    read -p "❓ Sudo privilege is required to link binary to $NPM_PREFIX. Proceed? [Y/n]: " CONFIRM_SUDO
+    CONFIRM_SUDO=${CONFIRM_SUDO:-Y}
+
+    case "$CONFIRM_SUDO" in
+        [yY][eE][sS]|[yY])
+            echo "🔑 Invoking sudo for 'npm link'..."
+            sudo npm link
+            ;;
+        *)
+            echo "❌ Global linking canceled by user. Local installation completed."
+            echo "   You can manually run 'sudo npm link' whenever you are ready."
+            exit 0
+            ;;
+    esac
+else
+    npm link
+fi
 
 echo ""
 echo "=================================================="
