@@ -35,6 +35,7 @@ const btnSubmitOrder = document.getElementById('btn-submit-order');
 const btcStockLabel = document.getElementById('btc-stock-label');
 const outOfStockMessage = document.getElementById('out-of-stock-message');
 const noInternetBuyMessage = document.getElementById('no-internet-buy-message');
+const sellCompleteMessage = document.getElementById('sell-complete-message');
 
 // Stats bar
 const priceMainEl = document.getElementById('price-main');
@@ -76,6 +77,19 @@ let backOnlineTimeoutId = null;
 let currentOrderType = 'MARKET'; // MARKET or LIMIT
 let currentSide = 'BUY'; // BUY or SELL
 
+function showSellCompleteMessage() {
+  if (sellCompleteMessage) {
+    sellCompleteMessage.classList.remove('hidden');
+    lucide.createIcons();
+  }
+}
+
+function hideSellCompleteMessage() {
+  if (sellCompleteMessage) {
+    sellCompleteMessage.classList.add('hidden');
+  }
+}
+
 // Initialize Simulation
 function initSimulation() {
   sim = new BitcoinTradingSimulation({
@@ -84,6 +98,7 @@ function initSimulation() {
     seedLength: 100,
     ticksPerCandle: 5
   });
+  hideSellCompleteMessage();
 
   // Seed default news
   sim.newsFeed = [
@@ -466,6 +481,7 @@ btnSideBuy.addEventListener('click', () => {
   btnSideSell.className = "side-btn hover:bg-red-500/10 text-gray-400 text-xs py-2 rounded-md font-bold transition";
   btnSubmitOrder.className = "bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-2.5 rounded-lg transition shadow-lg shadow-green-500/15 w-full";
   btnSubmitOrder.textContent = "Execute BUY Order";
+  hideSellCompleteMessage();
   updateFormLabels();
 });
 
@@ -475,6 +491,7 @@ btnSideSell.addEventListener('click', () => {
   btnSideBuy.className = "side-btn hover:bg-green-500/10 text-gray-400 text-xs py-2 rounded-md font-bold transition";
   btnSubmitOrder.className = "bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2.5 rounded-lg transition shadow-lg shadow-red-500/15 w-full";
   btnSubmitOrder.textContent = "Execute SELL Order";
+  hideSellCompleteMessage();
   updateFormLabels();
 });
 
@@ -527,13 +544,18 @@ btnSubmitOrder.addEventListener('click', () => {
     return;
   }
 
+  let orderSuccess = false;
   if (currentOrderType === 'MARKET') {
     if (currentSide === 'BUY') {
       const res = sim.buyMarket(amount);
       if (!res.success) alert(res.error);
     } else {
       const res = sim.sellMarket(amount);
-      if (!res.success) alert(res.error);
+      if (!res.success) {
+        alert(res.error);
+      } else {
+        orderSuccess = true;
+      }
     }
   } else {
     // Limit order placement
@@ -543,13 +565,37 @@ btnSubmitOrder.addEventListener('click', () => {
       return;
     }
     const res = sim.placeLimitOrder(currentSide, targetPrice, amount);
-    if (!res.success) alert(res.error);
+    if (!res.success) {
+      alert(res.error);
+    } else {
+      if (currentSide === 'SELL') {
+        orderSuccess = true;
+      }
+    }
   }
 
   // Clear input
   inputAmount.value = '';
+
+  if (currentSide === 'SELL' && orderSuccess) {
+    showSellCompleteMessage();
+  } else {
+    hideSellCompleteMessage();
+  }
+
   updateUI();
 });
+
+// Hide Sell complete message when typing new amounts or prices
+inputAmount.addEventListener('input', () => {
+  hideSellCompleteMessage();
+});
+
+if (inputLimitPrice) {
+  inputLimitPrice.addEventListener('input', () => {
+    hideSellCompleteMessage();
+  });
+}
 
 // Bots Toggles listeners
 botSmaToggle.addEventListener('change', () => {

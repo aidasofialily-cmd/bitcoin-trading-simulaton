@@ -32,7 +32,7 @@ test('should show "No internet connection to buy" message when offline and buyin
 
   // Verify the no internet message is visible
   await expect(noInternetBuyMessage).toBeVisible();
-  await expect(noInternetBuyMessage).toContainText('No Internet Connection to buy');
+  await expect(noInternetBuyMessage).toContainText('No internet connection to buy');
 
   // Mock fetch to return success
   await page.route('**/api/status', async route => {
