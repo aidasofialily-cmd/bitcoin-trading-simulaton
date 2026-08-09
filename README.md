@@ -117,6 +117,25 @@ PORT=3001 npm start
 **Issue**: Running `npx playwright test` fails.
 **Solution**: Ensure you have installed the necessary browser binaries using `npx playwright install chromium`. Also, ensure the server is NOT running on the same port if the test expects to launch its own instance, or check the test configuration.
 
+## Diagnostics & Troubleshooting
+
+If you encounter any issues during installation or execution, an automated diagnostic script is included in the repository to inspect your environment and identify potential fixes.
+
+### Automatic Failure Diagnostics
+
+If `./install.sh` encounters an error at any point, it will automatically catch the failure and run `./install-troubleshooter.sh` to output an immediate system report.
+
+---
+
+### Manual Troubleshooting Run
+
+You can run the troubleshooter manually at any time to verify your setup before running installation steps:
+
+```bash
+# Ensure execution permissions and run
+chmod +x install-troubleshooter.sh
+./install-troubleshooter.sh
+
 ## Uninstalling
 If you want to uninstall, run these commands:
 ```bash
