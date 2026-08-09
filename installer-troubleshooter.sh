@@ -9,6 +9,11 @@ echo ""
 ERRORS=0
 WARNINGS=0
 
+# Fix flags tracked across diagnostic checks
+FIX_PERMISSIONS_NEEDED=false
+FIX_EXEC_FLAGS_NEEDED=false
+FIX_NPM_INSTALL_NEEDED=false
+
 # 1. Check Operating System
 echo "🔍 [1/6] Checking Operating System..."
 OS_TYPE="$(uname -s)"
@@ -81,7 +86,7 @@ if command -v npm &> /dev/null; then
             echo "   ✅ Permissions: Running as root."
         else
             echo "   ⚠️ Notice: $NPM_PREFIX requires 'sudo' or elevated privileges to write."
-            echo "      (Note: install.sh will prompt for sudo automatically or accept -y)."
+            FIX_PERMISSIONS_NEEDED=true
             ((WARNINGS++))
         fi
     fi
@@ -91,15 +96,22 @@ fi
 echo "🔍 [6/6] Checking Repository Structure..."
 if [ -f "package.json" ]; then
     echo "   ✅ Found package.json in current working directory."
-    if [ -f "install.sh" ]; then
-        if [ -x "install.sh" ]; then
-            echo "   ✅ install.sh is present and executable."
-        else
-            echo "   ⚠️ Warning: install.sh exists but lacks execute permissions (+x)."
-            echo "      Fix with: chmod +x install.sh"
+    
+    # Check if local dependencies are installed
+    if [ ! -d "node_modules" ]; then
+        echo "   ⚠️ Warning: node_modules directory missing. Project dependencies not installed."
+        FIX_NPM_INSTALL_NEEDED=true
+        ((WARNINGS++))
+    fi
+
+    # Check execution flags on shell scripts
+    for script in install.sh uninstall.sh install-troubleshooter.sh; do
+        if [ -f "$script" ] && [ ! -x "$script" ]; then
+            echo "   ⚠️ Warning: $script exists but lacks execute permissions (+x)."
+            FIX_EXEC_FLAGS_NEEDED=true
             ((WARNINGS++))
         fi
-    fi
+    done
 else
     echo "   ❌ Error: package.json not found in current directory."
     echo "      Ensure you run this troubleshooter from the repository root."
@@ -112,15 +124,85 @@ echo "  Diagnostic Summary"
 echo "=================================================="
 echo "   Errors found:   $ERRORS"
 echo "   Warnings found: $WARNINGS"
+echo "=================================================="
 echo ""
 
+# Interactive Automated Fix Menu
+show_fix_menu() {
+    while true; do
+        echo "🛠️  Automated Quick Fix Menu:"
+        echo "   [1] Grant execution permissions (chmod +x *.sh)"
+        echo "   [2] Install npm local dependencies (npm install)"
+        echo "   [3] Configure user-owned global npm directory (~/.npm-global)"
+        echo "   [4] Run full automated repair sequence"
+        echo "   [5] Exit troubleshooter"
+        echo ""
+        read -p "Select an option [1-5]: " CHOICE
+
+        case "$CHOICE" in
+            1)
+                echo "🔧 Applying execute permissions (+x) to all shell scripts..."
+                chmod +x install.sh uninstall.sh install-troubleshooter.sh 2>/dev/null || true
+                echo "✅ Execute permissions granted."
+                echo ""
+                ;;
+            2)
+                echo "📦 Installing npm dependencies..."
+                npm install
+                echo "✅ npm dependencies installed."
+                echo ""
+                ;;
+            3)
+                echo "⚙️ Configuring user-owned global npm directory..."
+                mkdir -p "$HOME/.npm-global"
+                npm config set prefix "$HOME/.npm-global"
+                echo "✅ npm prefix updated to $HOME/.npm-global"
+                echo "💡 Tip: Ensure 'export PATH=~/.npm-global/bin:\$PATH' is in your ~/.bashrc or ~/.zshrc"
+                echo ""
+                ;;
+            4)
+                echo "🚀 Running complete automated repair sequence..."
+                chmod +x install.sh uninstall.sh install-troubleshooter.sh 2>/dev/null || true
+                npm install
+                if [ "$FIX_PERMISSIONS_NEEDED" = true ]; then
+                    mkdir -p "$HOME/.npm-global"
+                    npm config set prefix "$HOME/.npm-global"
+                fi
+                echo "🎉 Repair sequence complete! Re-running installer..."
+                echo ""
+                ./install.sh -y
+                exit 0
+                ;;
+            5)
+                echo "👋 Exiting troubleshooter."
+                exit 0
+                ;;
+            *)
+                echo "❌ Invalid choice. Please select a number between 1 and 5."
+                echo ""
+                ;;
+        esac
+    done
+}
+
+# Prompt user if issues were detected or if interactive terminal is active
+if [ -t 0 ]; then
+    read -p "❓ Would you like to launch the interactive fix menu? [Y/n]: " LAUNCH_FIX
+    LAUNCH_FIX=${LAUNCH_FIX:-Y}
+
+    case "$LAUNCH_FIX" in
+        [yY][eE][sS]|[yY])
+            echo ""
+            show_fix_menu
+            ;;
+        *)
+            echo "Exiting without applying fixes."
+            ;;
+    esac
+fi
+
 if [ "$ERRORS" -gt 0 ]; then
-    echo "❌ System check failed. Resolve the errors above before running install.sh."
     exit 1
-elif [ "$WARNINGS" -gt 0 ]; then
-    echo "⚠️ System check passed with warnings. Installation should proceed normally."
-    exit 0
 else
-    echo "🎉 System check passed cleanly! Your environment is ready for install.sh."
     exit 0
 fi
