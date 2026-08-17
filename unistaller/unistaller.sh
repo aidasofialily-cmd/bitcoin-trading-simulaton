@@ -4,7 +4,7 @@
 set -e
 
 echo "=================================================="
-echo "  Uninstalling Bitcoin Trading Simulation CLI     "
+echo "  Uninstalling Bitcoin Trading Simulation         "
 echo "  Repository: aidasofialily-cmd/bitcoin-trading-simulaton"
 echo "=================================================="
 
